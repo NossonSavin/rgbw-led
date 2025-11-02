@@ -3,10 +3,7 @@
 
 #include <Arduino.h>
 #include <driver/rmt.h>
-
-#define NUM_LEDS 1
-#define DATA_PIN 17
-#define RMT_CHANNEL RMT_CHANNEL_0
+#include <vector>
 
 // RGBW structure
 struct RGBW
@@ -16,10 +13,36 @@ struct RGBW
         : r(red), g(green), b(blue), w(white) {}
 };
 
-extern RGBW leds[NUM_LEDS];
+// RGBWLed class for managing LED strips
+class RGBWLed
+{
+public:
+    // Constructor
+    RGBWLed(uint8_t dataPin, rmt_channel_t rmtChannel = RMT_CHANNEL_0);
 
-// Function declarations
-void setupRMT();
-void sendRGBW();
+    // Initialize the LED strip with number of LEDs
+    void begin(uint16_t numLeds);
+
+    // Set LED color
+    void setLED(uint16_t index, uint8_t red, uint8_t green, uint8_t blue, uint8_t white);
+    void setLED(uint16_t index, const RGBW &color);
+
+    // Send data to LEDs
+    void update();
+
+    // Get LED array
+    std::vector<RGBW> &getLeds() { return leds; }
+
+    // Get number of LEDs
+    uint16_t getNumLeds() const { return leds.size(); }
+
+private:
+    uint8_t dataPin;
+    rmt_channel_t rmtChannel;
+    std::vector<RGBW> leds;
+
+    void setupRMT();
+    void sendRGBW();
+};
 
 #endif // RGBW_LED_H

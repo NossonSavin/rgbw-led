@@ -41,64 +41,124 @@ pio lib install rgbw-led
 #include <Arduino.h>
 #include <rgbw_led.h>
 
+// Create LED instance with data pin 17, using RMT_CHANNEL_0
+RGBWLed ledStrip(17, RMT_CHANNEL_0);
+
 void setup() {
-    setupRMT();  // Initialize RMT peripheral
-    
-    // Clear all LEDs
-    for (int i = 0; i < NUM_LEDS; i++) {
-        leds[i] = RGBW(0, 0, 0, 0);
-    }
+    // Initialize with 1 LED
+    ledStrip.begin(1);
 }
 
 void loop() {
     // Set LED to pure white using white channel
-    leds[0] = RGBW(0, 0, 0, 255);
-    sendRGBW();
+    ledStrip.setLED(0, 0, 0, 0, 255);  // (index, R, G, B, W)
+    ledStrip.update();  // Send data to LED
     delay(1000);
     
     // Set LED to red
-    leds[0] = RGBW(255, 0, 0, 0);
-    sendRGBW();
+    ledStrip.setLED(0, 255, 0, 0, 0);
+    ledStrip.update();
     delay(1000);
+}
+```
+
+### Multiple LEDs Example
+
+```cpp
+RGBWLed ledStrip(17, RMT_CHANNEL_0);
+
+void setup() {
+    ledStrip.begin(10);  // Initialize with 10 LEDs
+}
+
+void loop() {
+    for (int i = 0; i < 10; i++) {
+        ledStrip.setLED(i, i * 25, 0, 0, 0);  // Red gradient
+    }
+    ledStrip.update();
+    delay(100);
+}
+```
+
+### Using RGBW Struct
+
+```cpp
+RGBWLed ledStrip(17, RMT_CHANNEL_0);
+
+void setup() {
+    ledStrip.begin(1);
+}
+
+void loop() {
+    RGBW color(255, 128, 0, 0);  // Orange
+    ledStrip.setLED(0, color);
+    ledStrip.update();
 }
 ```
 
 ## Configuration
 
-Edit the following defines in `include/rgbw_led.h` to match your setup:
+Configuration is done through the constructor and `begin()` method - no file editing required!
 
 ```cpp
-#define NUM_LEDS 1          // Number of LEDs
-#define DATA_PIN 17         // GPIO pin connected to LED data
-#define RMT_CHANNEL RMT_CHANNEL_0  // RMT channel to use
+// Create instance with custom pin and RMT channel
+RGBWLed ledStrip(GPIO_PIN, RMT_CHANNEL);
+
+// Initialize with number of LEDs
+ledStrip.begin(NUM_LEDS);
 ```
+
+### Constructor Parameters
+
+- `dataPin`: GPIO pin connected to LED data (e.g., 17)
+- `rmtChannel`: RMT channel to use (default: RMT_CHANNEL_0)
+  - RMT_CHANNEL_0
+  - RMT_CHANNEL_1
+  - RMT_CHANNEL_2
+  - RMT_CHANNEL_3 (for ESP32-S3)
 
 ## API Reference
 
-### RGBW Structure
+### Constructor
 
 ```cpp
-struct RGBW {
-    uint8_t r, g, b, w;
-    RGBW(uint8_t red = 0, uint8_t green = 0, uint8_t blue = 0, uint8_t white = 0);
-};
+RGBWLed(uint8_t dataPin, rmt_channel_t rmtChannel = RMT_CHANNEL_0);
 ```
 
-### Functions
+Creates a new LED strip instance.
 
-#### `void setupRMT()`
+### Methods
 
-Initializes the RMT peripheral for SK6812 LED control. Call this once in `setup()`.
+#### `void begin(uint16_t numLeds)`
 
-#### `void sendRGBW()`
+Initializes the LED strip with the specified number of LEDs. Must be called before using the strip.
 
-Sends the current LED data to the strip. Call this after modifying the `leds` array.
+#### `void setLED(uint16_t index, uint8_t red, uint8_t green, uint8_t blue, uint8_t white)`
 
-### Global Variables
+Sets the color of an LED at the given index.
 
-#### `RGBW leds[NUM_LEDS]`
+**Parameters:**
+- `index`: LED index (0 to numLeds-1)
+- `red`: Red value (0-255)
+- `green`: Green value (0-255)
+- `blue`: Blue value (0-255)
+- `white`: White value (0-255)
 
-Array of LED color values. Modify this array and call `sendRGBW()` to update LEDs.
+#### `void setLED(uint16_t index, const RGBW& color)`
+
+Sets the color of an LED using an RGBW struct.
+
+#### `void update()`
+
+Sends the current LED data to the strip. Call this after setting LED colors.
+
+#### `std::vector<RGBW>& getLeds()`
+
+Returns reference to the internal LED array for direct manipulation.
+
+#### `uint16_t getNumLeds() const`
+
+Returns the number of LEDs in the strip.
 
 ## Timing
 
